@@ -1,6 +1,6 @@
 const STYLES = ['/styles/styles.css'];
 const CONFIG = {
-  // imsClientId: 'bacom', // Commented out to disable IMS authentication
+  imsClientId: 'bacom',
   local: {
     pdfViewerClientId: '3b685312b5784de6943647df19f1f492',
     pdfViewerReportSuite: 'adbadobedxqa',
@@ -234,31 +234,32 @@ export function transformExlLinks(locale) {
     if (lastSection) lastSection.insertAdjacentElement('beforeend', a);
   }
 
-  // Disable authentication for '/final' path
-  if (window.location.pathname === '/final') {
-    // Override any authentication functions that might be loaded
-    window.adobeIMS = null;
-    window.feds = window.feds || {};
-    window.feds.auth = null;
-    
-    // Set config without IMS
-    const configWithoutAuth = { ...CONFIG, miloLibs: LIBS };
-    delete configWithoutAuth.imsClientId;
-    setConfig(configWithoutAuth);
-    
-    // Additional auth bypass for milo libraries
-    window.addEventListener('DOMContentLoaded', () => {
-      // Override any milo authentication that might have loaded
-      if (window.adobeIMS) window.adobeIMS = null;
-      if (window.feds && window.feds.auth) window.feds.auth = null;
-    });
-  } else {
-    setConfig({ ...CONFIG, miloLibs: LIBS });
-  }
-  
+  setConfig({ ...CONFIG, miloLibs: LIBS });
   loadLana({ clientId: 'bacom', tags: 'info', endpoint: 'https://business.adobe.com/lana/ll', endpointStage: 'https://business.stage.adobe.com/lana/ll' });
   transformExlLinks(getLocale(CONFIG.locales));
   await loadArea();
+
+  // Add manual IMS trigger button
+  if (window.manualIMS) {
+    const imsButton = createTag('button', { 
+      id: 'manual-ims-trigger',
+      style: 'position: fixed; top: 20px; right: 20px; z-index: 9999; background: #0066cc; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-size: 12px;'
+    }, 'Manual IMS');
+    
+    imsButton.addEventListener('click', () => {
+      window.manualIMS.showManualInputForm('manual-trigger');
+    });
+    
+    document.body.appendChild(imsButton);
+    
+    // Add keyboard shortcut (Ctrl+Alt+I or Cmd+Alt+I)
+    document.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.altKey && e.key === 'i') {
+        e.preventDefault();
+        window.manualIMS.showManualInputForm('keyboard-shortcut');
+      }
+    });
+  }
 
   if (document.querySelector('meta[name="aa-university"]')) {
     const { default: registerAAUniversity } = await import('./aa-university.js');
