@@ -182,13 +182,7 @@ export const getLCPImages = (doc) => {
 }());
 
 export function setLibs(location) {
-  const { hostname, search, pathname } = location;
-  
-  // For the '/final' path, use local libs to avoid authentication
-  if (pathname === '/final') {
-    return '/libs';
-  }
-  
+  const { hostname, search } = location;
   if (!['.hlx.', '.aem.', '.stage.', 'local'].some((i) => hostname.includes(i))) return '/libs';
   const branch = new URLSearchParams(search).get('milolibs') || 'main';
   if (branch === 'local') return 'http://localhost:6456/libs';
@@ -251,6 +245,13 @@ export function transformExlLinks(locale) {
     const configWithoutAuth = { ...CONFIG, miloLibs: LIBS };
     delete configWithoutAuth.imsClientId;
     setConfig(configWithoutAuth);
+    
+    // Additional auth bypass for milo libraries
+    window.addEventListener('DOMContentLoaded', () => {
+      // Override any milo authentication that might have loaded
+      if (window.adobeIMS) window.adobeIMS = null;
+      if (window.feds && window.feds.auth) window.feds.auth = null;
+    });
   } else {
     setConfig({ ...CONFIG, miloLibs: LIBS });
   }
