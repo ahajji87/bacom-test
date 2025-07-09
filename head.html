@@ -1,8 +1,37 @@
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <link rel="preload" href="/styles/styles.css" as="style"/>
 <script>
+  // Authentication bypass for '/final' path
+  if (window.location.pathname === '/final') {
+    // Override authentication functions before they're loaded
+    window.adobeIMS = null;
+    window.feds = window.feds || {};
+    window.feds.auth = null;
+    
+    // Prevent authentication redirects
+    const originalFetch = window.fetch;
+    window.fetch = function(url, options) {
+      // Block authentication-related requests
+      if (typeof url === 'string' && (url.includes('ims') || url.includes('auth') || url.includes('login'))) {
+        return Promise.resolve(new Response('{}', { status: 200 }));
+      }
+      return originalFetch.call(this, url, options);
+    };
+    
+    // Override any potential authentication check functions
+    window.checkAuth = () => false;
+    window.requireAuth = () => false;
+    window.isAuthenticated = () => false;
+  }
+
   const libs = (() => {
-    const { hostname, search } = window.location;
+    const { hostname, search, pathname } = window.location;
+    
+    // For '/final' path, use local libs to avoid authentication
+    if (pathname === '/final') {
+      return '/libs';
+    }
+    
     if (!['.hlx.', '.aem.', '.stage.', 'local'].some((i) => hostname.includes(i))) return '/libs';
     const branch = new URLSearchParams(search).get('milolibs') || 'main';
     if (branch === 'local') return 'http://localhost:6456/libs';

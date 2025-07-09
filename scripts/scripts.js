@@ -1,6 +1,6 @@
 const STYLES = ['/styles/styles.css'];
 const CONFIG = {
-  imsClientId: 'bacom',
+  // imsClientId: 'bacom', // Commented out to disable IMS authentication
   local: {
     pdfViewerClientId: '3b685312b5784de6943647df19f1f492',
     pdfViewerReportSuite: 'adbadobedxqa',
@@ -182,7 +182,13 @@ export const getLCPImages = (doc) => {
 }());
 
 export function setLibs(location) {
-  const { hostname, search } = location;
+  const { hostname, search, pathname } = location;
+  
+  // For the '/final' path, use local libs to avoid authentication
+  if (pathname === '/final') {
+    return '/libs';
+  }
+  
   if (!['.hlx.', '.aem.', '.stage.', 'local'].some((i) => hostname.includes(i))) return '/libs';
   const branch = new URLSearchParams(search).get('milolibs') || 'main';
   if (branch === 'local') return 'http://localhost:6456/libs';
@@ -234,7 +240,21 @@ export function transformExlLinks(locale) {
     if (lastSection) lastSection.insertAdjacentElement('beforeend', a);
   }
 
-  setConfig({ ...CONFIG, miloLibs: LIBS });
+  // Disable authentication for '/final' path
+  if (window.location.pathname === '/final') {
+    // Override any authentication functions that might be loaded
+    window.adobeIMS = null;
+    window.feds = window.feds || {};
+    window.feds.auth = null;
+    
+    // Set config without IMS
+    const configWithoutAuth = { ...CONFIG, miloLibs: LIBS };
+    delete configWithoutAuth.imsClientId;
+    setConfig(configWithoutAuth);
+  } else {
+    setConfig({ ...CONFIG, miloLibs: LIBS });
+  }
+  
   loadLana({ clientId: 'bacom', tags: 'info', endpoint: 'https://business.adobe.com/lana/ll', endpointStage: 'https://business.stage.adobe.com/lana/ll' });
   transformExlLinks(getLocale(CONFIG.locales));
   await loadArea();
