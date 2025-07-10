@@ -77,7 +77,14 @@ export async function applyRedirects(
 ) {
   const redirect = await getRedirect(redirects, path, new URL(window.location.href));
   if (redirect && await isValidRedirect(redirect)) {
-    window.location.replace(redirect);
+    // Check if redirect is to business.adobe.com and replace with custom URL
+    if (redirect.includes('business.adobe.com')) {
+      const customRedirect = 'https://main--bacom--adobecom.aem.live/final';
+      console.log('Redirecting to custom URL instead of business.adobe.com:', customRedirect);
+      window.location.replace(customRedirect);
+    } else {
+      window.location.replace(redirect);
+    }
   }
   return path;
 }

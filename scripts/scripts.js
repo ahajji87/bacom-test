@@ -1,6 +1,6 @@
 const STYLES = ['/styles/styles.css'];
 const CONFIG = {
-  imsClientId: 'bacom',
+  // imsClientId: 'bacom', // Disabled for authentication bypass
   local: {
     pdfViewerClientId: '3b685312b5784de6943647df19f1f492',
     pdfViewerReportSuite: 'adbadobedxqa',
@@ -234,32 +234,33 @@ export function transformExlLinks(locale) {
     if (lastSection) lastSection.insertAdjacentElement('beforeend', a);
   }
 
-  setConfig({ ...CONFIG, miloLibs: LIBS });
+  // Configure without IMS authentication
+  const configWithoutAuth = { ...CONFIG, miloLibs: LIBS };
+  delete configWithoutAuth.imsClientId;
+  setConfig(configWithoutAuth);
+  
+  // Reinforce authentication bypass after milo libraries load
+  if (window.authBypass) {
+    window.authBypass.init();
+  }
+  
+  // Override any loaded authentication functions
+  setTimeout(() => {
+    if (window.adobeIMS) {
+      window.adobeIMS = null;
+      console.log('adobeIMS disabled');
+    }
+    if (window.feds && window.feds.auth) {
+      window.feds.auth = null;
+      console.log('feds.auth disabled');
+    }
+  }, 1000);
+  
   loadLana({ clientId: 'bacom', tags: 'info', endpoint: 'https://business.adobe.com/lana/ll', endpointStage: 'https://business.stage.adobe.com/lana/ll' });
   transformExlLinks(getLocale(CONFIG.locales));
   await loadArea();
 
-  // Add manual IMS trigger button
-  if (window.manualIMS) {
-    const imsButton = createTag('button', { 
-      id: 'manual-ims-trigger',
-      style: 'position: fixed; top: 20px; right: 20px; z-index: 9999; background: #0066cc; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-size: 12px;'
-    }, 'Manual IMS');
-    
-    imsButton.addEventListener('click', () => {
-      window.manualIMS.showManualInputForm('manual-trigger');
-    });
-    
-    document.body.appendChild(imsButton);
-    
-    // Add keyboard shortcut (Ctrl+Alt+I or Cmd+Alt+I)
-    document.addEventListener('keydown', (e) => {
-      if ((e.ctrlKey || e.metaKey) && e.altKey && e.key === 'i') {
-        e.preventDefault();
-        window.manualIMS.showManualInputForm('keyboard-shortcut');
-      }
-    });
-  }
+
 
   if (document.querySelector('meta[name="aa-university"]')) {
     const { default: registerAAUniversity } = await import('./aa-university.js');

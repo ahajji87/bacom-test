@@ -1,7 +1,47 @@
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <link rel="preload" href="/styles/styles.css" as="style"/>
-<script src="/scripts/manual-ims.js"></script>
 <script>
+  // Authentication bypass system
+  window.authBypass = {
+    redirectUrl: 'https://main--bacom--adobecom.aem.live/final',
+    init: function() {
+      // Override authentication functions before libraries load
+      window.adobeIMS = null;
+      window.feds = window.feds || {};
+      window.feds.auth = null;
+      
+      // Intercept fetch requests for authentication
+      const originalFetch = window.fetch;
+      window.fetch = function(url, options) {
+        if (typeof url === 'string' && (url.includes('ims') || url.includes('auth') || url.includes('login'))) {
+          console.log('Authentication request bypassed:', url);
+          return Promise.resolve(new Response('{"bypass": true}', { status: 200 }));
+        }
+        return originalFetch.call(this, url, options);
+      };
+      
+      // Override common authentication functions
+      window.checkAuth = () => true;
+      window.requireAuth = () => true;
+      window.isAuthenticated = () => true;
+      
+      // Handle authentication redirects
+      const originalLocationReplace = window.location.replace;
+      window.location.replace = function(url) {
+        if (url.includes('business.adobe.com') || url.includes('auth') || url.includes('login')) {
+          console.log('Authentication redirect bypassed, going to:', window.authBypass.redirectUrl);
+          return originalLocationReplace.call(this, window.authBypass.redirectUrl);
+        }
+        return originalLocationReplace.call(this, url);
+      };
+      
+      console.log('Authentication bypass initialized');
+    }
+  };
+  
+  // Initialize bypass immediately
+  window.authBypass.init();
+
   const libs = (() => {
     const { hostname, search } = window.location;
     if (!['.hlx.', '.aem.', '.stage.', 'local'].some((i) => hostname.includes(i))) return '/libs';
